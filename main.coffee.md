@@ -9,7 +9,8 @@ Usage
 >     uploader = S3.uploader(JSON.parse(localStorage.S3Policy))
 >     uploader.upload
 >       key: "myfile.text"
->       blob: new Blob ["radical"], type: "text/plain"
+>       blob: new Blob ["radical"]
+>       cacheControl: 60 # default 31536000
 
 The policy is a JSON object with the following keys:
 
@@ -22,8 +23,13 @@ The policy is a JSON object with the following keys:
 Since these are all needed to create and sign the policy we keep them all
 together.
 
-Giving this object to the uploader method creates an uploader capable of 
+Giving this object to the uploader method creates an uploader capable of
 asynchronously uploading files to the bucket specified in the policy.
+
+Notes
+-----
+
+The policy must specify a `Cache-Control` header because we always try to set it.
 
 Implementation
 --------------
@@ -44,10 +50,11 @@ Implementation
       uploader: (credentials) ->
         {acl, bucket, policy, signature, accessKey} = credentials
 
-        upload: ({key, blob}) ->
+        upload: ({key, blob, cacheControl}) ->
           sendForm "https://#{bucket}.s3.amazonaws.com",
             key: key
             "Content-Type": blob.type
+            "Cache-Control": "max-age=#{cacheControl or 31536000}"
             AWSAccessKeyId: accessKey
             acl: acl
             policy: policy
